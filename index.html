@@ -50,6 +50,7 @@ main{max-width:760px;margin:0 auto;padding:14px 14px calc(28px + env(safe-area-i
 .dom span{background:var(--pill);border-radius:6px;padding:3px 8px;font-size:12px;color:#3b4655;white-space:nowrap}
 .forms{margin-top:8px;font-size:12px;color:var(--muted)}
 .note{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.55}
+.more{width:100%;height:44px;border:1px solid var(--line);background:var(--card);border-radius:10px;color:var(--brand);font-size:14px;cursor:pointer}
 .empty{text-align:center;color:var(--muted);padding:50px 10px;font-size:14px;line-height:1.8}
 mark{background:#ffe9a8;color:inherit;border-radius:3px;padding:0 1px}
 footer{max-width:760px;margin:0 auto;padding:6px 18px 30px;color:var(--muted);font-size:11.5px;line-height:1.7}
@@ -82,7 +83,7 @@ footer{max-width:760px;margin:0 auto;padding:6px 18px 30px;color:var(--muted);fo
   var list = document.getElementById('list'), chips = document.getElementById('chips'),
       q = document.getElementById('q'), hint = document.getElementById('hint'),
       clearBtn = document.getElementById('clear');
-  var drugs = DB.drugs || [], cat = '全部';
+  var drugs = DB.drugs || [], cat = '全部', page = 1;
 
   document.getElementById('title').textContent = (DB.meta.title || '') || document.title;
   document.getElementById('foot').textContent = (DB.meta.disclaimer || '') + ' ｜ 数据更新：' + (DB.meta.updated || '');
@@ -99,7 +100,7 @@ footer{max-width:760px;margin:0 auto;padding:6px 18px 30px;color:var(--muted);fo
     b.className = 'chip' + (c===cat?' on':'');
     b.textContent = c === '全部' ? '全部 ' + drugs.length : c;
     b.onclick = function(){
-      cat = c;
+      cat = c; page = 1;
       [].forEach.call(chips.children, function(x){ x.classList.toggle('on', x===b); });
       render();
     };
@@ -122,6 +123,7 @@ footer{max-width:760px;margin:0 auto;padding:6px 18px 30px;color:var(--muted);fo
 
   function render(){
     var kw = q.value.trim();
+    if (window.__kw !== kw) { page = 1; window.__kw = kw; }
     clearBtn.style.display = kw ? 'block' : 'none';
     var kws = kw.toLowerCase().split(/\s+/).filter(Boolean);
     var rows = drugs.filter(function(d){
@@ -135,7 +137,8 @@ footer{max-width:760px;margin:0 auto;padding:6px 18px 30px;color:var(--muted);fo
       list.innerHTML = '<div class="empty">没有找到匹配的药品<br>试试通用名（如“阿托伐他汀”）或原研商品名（如“立普妥”）</div>';
       return;
     }
-    list.innerHTML = rows.map(function(d){
+    var shown = rows.slice(0, page * 40);
+    list.innerHTML = shown.map(function(d){
       var dom = (d.domestic_examples||[]).length
         ? '<dd class="dom">' + d.domestic_examples.map(function(x){return '<span>'+hl(x,kw)+'</span>';}).join('') + '</dd>' : '';
       return '<article class="card">'
@@ -151,6 +154,10 @@ footer{max-width:760px;margin:0 auto;padding:6px 18px 30px;color:var(--muted);fo
         + (d.note ? '<div class="note">'+hl(d.note,kw)+'</div>' : '')
         + '</article>';
     }).join('');
+    if (rows.length > shown.length){
+      list.innerHTML += '<button id="more" class="more">再显示 ' + Math.min(40, rows.length - shown.length) + ' 条（已显示 ' + shown.length + '/' + rows.length + '）</button>';
+      document.getElementById('more').onclick = function(){ page++; render(); };
+    }
   }
 
   var t;
